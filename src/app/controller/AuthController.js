@@ -12,6 +12,7 @@ const transporter = nodemailer.createTransport({
 });
 
 class AuthController {
+
   async login(req, res) {
     try {
       const { email, password } = req.body;
@@ -47,6 +48,7 @@ class AuthController {
       }
 
       req.session.user = { email: userData.email, uid: userData.userId };
+      console.log(req.session.user)
 
       return res
         .status(200)
@@ -56,6 +58,7 @@ class AuthController {
       return res.status(500).json({ message: 'Lỗi server' });
     }
   }
+
   checklogin(req, res) {
     if (req.session.user) {
       res.json({ login: true, user: req.session.user });
@@ -63,6 +66,7 @@ class AuthController {
       res.json({ loggin: false });
     }
   }
+
   logout(req, res) {
     try {
       // Xóa session

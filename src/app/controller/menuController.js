@@ -1,14 +1,13 @@
 const { db } = require('../../firebaseconfig/firebase');
 class MenuController {
-  index(req, res) {
-    console.log('Session hiện tại:', req.session);
-    if (!req.session.user) {
-      return res
-        .status(401)
-        .json({ success: false, message: 'Chưa đăng nhập' });
-    }
-
-    res.json({ success: true, userId: req.session.user.uid });
+  async index(req, res) {
+      const menu=db.ref("monan");
+      const snapshot= await menu.once("value");
+      if(snapshot.exists()){
+        res.json(snapshot.val());
+      }else{
+        res.status(404).json({message: "không có dữ liệu món ăn"})
+      }  
   }
 }
 
