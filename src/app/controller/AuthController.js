@@ -69,21 +69,22 @@ class AuthController {
 
   logout(req, res) {
     try {
-      // Xóa session
-      req.session.destroy((err) => {
-        if (err) {
-          console.error('Lỗi khi đăng xuất:', err);
-          return res.status(500).json({ message: 'Lỗi server' });
-        }
-        // Xóa cookie (nếu có)
-        res.clearCookie('sessionId'); // Thay 'sessionId' bằng tên cookie session của bạn
-        return res.status(200).json({ message: 'Đăng xuất thành công' });
-      });
-    } catch (error) {
+      if (!req.session.user) {
+          return res.status(400).json({ message: "Không có người dùng nào đang đăng nhập", success: false });
+      }
+
+      delete req.session.user.email;
+      delete req.session.user.uid;
+
+      res.clearCookie('connect.sid');
+
+
+      return res.status(200).json({ message: 'Đăng xuất thành công', success: true, user: req.session.user });
+  } catch (error) {
       console.error('Lỗi server:', error);
       return res.status(500).json({ message: 'Lỗi server' });
-    }
   }
+}
 
   async register(req, res) {
     const { address, name, email, password, phone } = req.body;

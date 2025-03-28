@@ -3,8 +3,8 @@ const route = express.Router();
 
 const cartController = require('../app/controller/cartController');
 
+route.use('/update', cartController.updateQuantity);
+route.use('/delete', cartController.deploy);
 route.use('/', cartController.index);
-route.post('/delete', cartController.deploy);
-
 
 module.exports = route;

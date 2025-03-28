@@ -23,42 +23,101 @@ class CartController {
 
   async deploy(req, res) {
     try {
+      if (!req.session.user) {
+          return res.status(401).json({ message: "Bạn chưa đăng nhập" });
+      }
+
+      const userId = req.session.user.uid;  
+      const { ID_MonAn, SoLuong } = req.body;
+
+      if (!ID_MonAn) {
+          return res.status(400).json({ message: "Thiếu ID món ăn" });
+      }
+
+      console.log("User ID:", userId);
+      console.log("ID Món Ăn:", ID_MonAn);
+
+      const cartRef = db.ref(`GioHang/${userId}/${ID_MonAn}`);
+      const food = db.ref(`monan/${ID_MonAn}`);
+      const snapshot=await food.once("value")
+
+      const item =snapshot.val()
+
+      const cartSnapshot = await cartRef.once("value");
+
+      if (!cartSnapshot.exists()) {
+          return res.status(404).json({ message: "Món ăn không tồn tại trong giỏ hàng" });
+      }
+
+      await cartRef.remove();
+      await food.update({SoLuong: item.SoLuong+=SoLuong})
+      if(item.SoLuong>1){
+        await food.update({TrangThai: "còn"})
+      }
+      return res.json({message : "Món ăn không tồn tại trong giỏ hàng"});
+
+      
+  } catch (error) {
+     
+      return res.status(500).json({ success: false, message: "Lỗi server", error: error.toString() });
+  }
+};
+async updateQuantity(req,res){
+      try{
+        const{ action, ID_MonAn}=req.body
+        const UserID=req.session.user.uid
+       //////////////////////////////////////////////////////////////////
+        const ref = db.ref(`GioHang/${UserID}/${ID_MonAn}`)
+        const snapshot=await ref.once("value")
+        console.log("tới đây rồi 2")
+        const data=snapshot.val()
+        let soLuong=data.soLuong
+//////////////////////////////////////////////////////
+        const menu= db.ref(`monan/${ID_MonAn}`)
+        const item = await menu.once("value")
+        const update =item.val()
+        let food=update.SoLuong
+        
+        if(action==="increase"){
+          if(food<0){
+            res.status(400).json({message: 'món này đã hết'})
+            return;
+          }else{
+            soLuong+=1;
+            food-=1;
+          }
+        }else{
+          Math.max(soLuong-=1,0);
+          food+=1
+        }
+
+
+
+        // action==="increase"? soLuong+=1 && food-=1 : Math.max(soLuong-1,0)&&food+1
+        // console.log("tới đây rồi 3")
+        if(soLuong===0){
+          await ref.remove();
+        }else{
+          await ref.update({soLuong})
+          
+        }
+
+        await menu.update({SoLuong:food})
+        
        
 
-        const userId = req.session.user.uid;
-        const { ID_MonAn } = req.body.ID_MonAn;
 
-        if (!userId || !ID_MonAn) {
-            console.log("Dữ liệu không hợp lệ", { userId, ID_MonAn });
-            return res.status(400).json({ message: "Dữ liệu không hợp lệ" });
-        }
 
-        console.log("UserID:", userId);
-        console.log("ID_MonAn:", ID_MonAn);
+        console.log("tới đây rồi 4")
+        res.json({success:true, soLuong, food})
+      }catch(error){
+        console.log(error)
+        res.status(400).json({message: 'lỗi kỹ thuật'})
+      }
 
-        const cartRef = db.ref(`GioHang/${userId}/${ID_MonAn}`);
-        const cartSnapshot = await cartRef.once("value");
 
-        if (!cartSnapshot.exists()) {
-            console.log("Món hàng không tồn tại trong giỏ hàng");
-            return res.status(404).json({ message: "Món hàng không tồn tại trong giỏ hàng" });
-        }
-
-        console.log("Cart Snapshot exists, proceeding to remove");
-
-        await cartRef.remove(); // Sử dụng remove() của reference
-        console.log("Item removed successfully");
-
-        const updatedCart = (await db.ref(`GioHang/${userId}`).once("value")).val();
-
-        console.log("Updated Cart:", updatedCart);
-
-        return res.json(updatedCart);
-    } catch (error) {
-        console.error("Lỗi server:", error);
-        return res.status(500).json({ success: false, message: "Lỗi server" });
-    }
 }
+
 }
 
 module.exports = new CartController();
